@@ -1,0 +1,9 @@
+[package]
+name = "opensmtpd-filter"
+version = "0.1.0"
+edition = "2024"
+description = "A Rust library for creating OpenSMTPD filters"
+license = "ISC"
+
+[dependencies]
+log = "0.4"
