@@ -24,11 +24,17 @@ pub struct ParseError(pub String);
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "protocol parse error: {}", self.0)
+        write!(f, "Invalid line received: {}", self.0)
     }
 }
 
 impl std::error::Error for ParseError {}
+
+impl From<ParseError> for std::io::Error {
+    fn from(e: ParseError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+    }
+}
 
 pub fn parse_event(line: &str) -> Result<(Event, &str), ParseError> {
     let mut parts = line.splitn(2, '|');
@@ -54,6 +60,10 @@ pub fn parse_event(line: &str) -> Result<(Event, &str), ParseError> {
         .ok_or_else(|| ParseError("missing timestamp".into()))?;
 
     let (version_major, version_minor) = parse_version(version_str)?;
+
+    if version_major == 0 && version_minor < 7 {
+        return Err(ParseError(format!("protocol version {}.{} presented, 0.7 and above is supported", version_major, version_minor)))
+    }
 
     let mut parts = rest.splitn(2, '|');
     let timestamp_str = parts
@@ -203,7 +213,7 @@ pub fn parse_address(s: &str, with_port: bool) -> Result<Address, ParseError> {
         } else {
             let end = s.len() - 1;
             if !s.ends_with(']') {
-                return Err(ParseError(format!("malformed IPv6 address: {s}")));
+                return Err(ParseError(format!("Cannot parse address: {s}")));
             }
             (&s[1..end], 0)
         };
@@ -229,7 +239,7 @@ pub fn parse_address(s: &str, with_port: bool) -> Result<Address, ParseError> {
 
         let ip: Ipv4Addr = addr_str
             .parse()
-            .map_err(|e| ParseError(format!("invalid IPv4 address: {e}")))?;
+            .map_err(|e| ParseError(format!("Cannot parse address: {e}")))?;
         Ok(Address::Ip(SocketAddr::new(IpAddr::V4(ip), port)))
     }
 }
