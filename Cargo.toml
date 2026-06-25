@@ -6,6 +6,3 @@ description = "A Rust library for creating OpenSMTPD filters"
 license = "ISC"
 
 [dependencies]
-
-[[example]]
-name = "filter-checksenderdomain"
