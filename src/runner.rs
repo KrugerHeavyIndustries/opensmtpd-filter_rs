@@ -16,6 +16,7 @@
 
 use std::collections::HashMap;
 use std::io::{self, BufRead, Write};
+use std::process::ExitCode;
 
 use crate::filter::{Filter, FilterResponse};
 use crate::protocol::{self, ParseError};
@@ -234,7 +235,24 @@ impl<F: Filter> SmtpFilterRunner<F> {
         self
     }
 
-    pub fn run(&mut self) -> io::Result<()> {
+    pub fn run(&mut self) -> ExitCode {
+        match self.run_inner() {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(e) => {
+                eprintln!("FATAL|{e}");
+                ExitCode::FAILURE
+            }
+        }
+    }
+
+    fn run_inner(&mut self) -> io::Result<()> {
+        if self.registrations.is_empty() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "No events registered",
+            ));
+        }
+
         let stdin = io::stdin();
         let stdout = io::stdout();
         let mut stdout = stdout.lock();
@@ -259,10 +277,7 @@ impl<F: Filter> SmtpFilterRunner<F> {
                 continue;
             }
 
-            if let Err(e) = self.handle_line(&line, &mut stdout) {
-                log::error!("Error processing line: {e} (line: {line})");
-                eprintln!("Error processing line: {e}");
-            }
+            self.handle_line(&line, &mut stdout)?;
             stdout.flush()?;
         }
 
@@ -283,10 +298,14 @@ impl<F: Filter> SmtpFilterRunner<F> {
 
         match (event.kind, event.phase) {
             (FilterKind::Filter, Phase::Connect) => {
-                let (hostname, address) = parse_filter_connect(params)?;
+                let (rdns, fcrdns, src, dst) = parse_filter_connect(params)?;
+                session.rdns = Some(rdns.clone());
+                session.fcrdns = fcrdns;
+                session.src = Some(src.clone());
+                session.dst = Some(dst.clone());
                 let response =
                     self.filter
-                        .on_filter_connect(session, &hostname, &address);
+                        .on_filter_connect(session, &rdns, fcrdns, &src, &dst);
                 write_filter_response(out, event.reqid, event.token.unwrap_or(0), &response)?;
             }
             (FilterKind::Filter, Phase::Helo) => {
@@ -552,12 +571,27 @@ fn write_filter_response(
     Ok(())
 }
 
-fn parse_filter_connect(params: &str) -> Result<(String, Address), ParseError> {
-    let (hostname, addr_str) = params
-        .split_once('|')
-        .ok_or_else(|| ParseError("missing address in connect".into()))?;
-    let address = protocol::parse_address(addr_str, false)?;
-    Ok((hostname.to_string(), address))
+fn parse_filter_connect(params: &str) -> Result<(String, Status, Address, Address), ParseError> {
+    let mut parts = params.splitn(4, '|');
+    let rdns = parts
+        .next()
+        .ok_or_else(|| ParseError("missing rdns in connect".into()))?;
+    let fcrdns_str = parts
+        .next()
+        .ok_or_else(|| ParseError("missing fcrdns in connect".into()))?;
+    let src_str = parts
+        .next()
+        .ok_or_else(|| ParseError("missing src in connect".into()))?;
+    let dst_str = parts
+        .next()
+        .ok_or_else(|| ParseError("missing dst in connect".into()))?;
+
+    let fcrdns = Status::from_str(fcrdns_str)
+        .ok_or_else(|| ParseError(format!("invalid fcrdns: {fcrdns_str}")))?;
+    let src = protocol::parse_address(src_str, true)?;
+    let dst = protocol::parse_address(dst_str, true)?;
+
+    Ok((rdns.to_string(), fcrdns, src, dst))
 }
 
 fn parse_report_link_connect(

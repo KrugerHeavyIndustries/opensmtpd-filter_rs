@@ -42,8 +42,10 @@ pub trait Filter {
     fn on_filter_connect(
         &mut self,
         session: &Session,
-        hostname: &str,
-        address: &Address,
+        rdns: &str,
+        fcrdns: Status,
+        src: &Address,
+        dst: &Address,
     ) -> FilterResponse {
         FilterResponse::Proceed
     }
