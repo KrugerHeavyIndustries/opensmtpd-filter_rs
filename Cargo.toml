@@ -8,6 +8,10 @@ license = "ISC"
 [dependencies]
 
 [[example]]
+name = "filter-announce"
+path = "examples/filter-announce.rs"
+
+[[example]]
 name = "filter-checksenderdomain"
 path = "examples/filter-checksenderdomain.rs"
 
