@@ -196,7 +196,7 @@ impl Phase {
             Phase::RcptTo => "rcpt-to",
             Phase::Data => "data",
             Phase::DataLine => "data-line",
-            Phase::Reset => "reset",
+            Phase::Reset => "rset",
             Phase::Quit => "quit",
             Phase::Noop => "noop",
             Phase::Help => "help",
