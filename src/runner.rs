@@ -98,8 +98,8 @@ impl<F: Filter> SmtpFilterRunner<F> {
         self
     }
 
-    pub fn register_filter_rset(&mut self) -> &mut Self {
-        self.add_registration(FilterKind::Filter, Phase::Rset, Direction::Incoming);
+    pub fn register_filter_reset(&mut self) -> &mut Self {
+        self.add_registration(FilterKind::Filter, Phase::Reset, Direction::Incoming);
         self.ensure_disconnect_report(Direction::Incoming);
         self
     }
@@ -346,8 +346,8 @@ impl<F: Filter> SmtpFilterRunner<F> {
                         .map_err(|e| ParseError(format!("write error: {e}")))?;
                 }
             }
-            (FilterKind::Filter, Phase::Rset) => {
-                let response = self.filter.on_filter_rset(session);
+            (FilterKind::Filter, Phase::Reset) => {
+                let response = self.filter.on_filter_reset(session);
                 write_filter_response(out, event.reqid, event.token.unwrap_or(0), &response)?;
             }
             (FilterKind::Filter, Phase::Quit) => {
