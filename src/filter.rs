@@ -82,7 +82,7 @@ pub trait Filter {
         vec![line.to_string()]
     }
 
-    fn on_filter_rset(&mut self, session: &Session) -> FilterResponse {
+    fn on_filter_reset(&mut self, session: &Session) -> FilterResponse {
         FilterResponse::Proceed
     }
 
