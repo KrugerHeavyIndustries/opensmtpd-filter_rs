@@ -530,6 +530,7 @@ fn write_filter_response(
 ) -> Result<(), ParseError> {
     let msg = match response {
         FilterResponse::Proceed => protocol::format_filter_result(reqid, token, "proceed"),
+        FilterResponse::Junk => protocol::format_filter_result(reqid, token, "junk"),
         FilterResponse::Reject { code, message } => {
             protocol::format_filter_result(reqid, token, &format!("reject|{code} {message}"))
         }
@@ -544,10 +545,11 @@ fn write_filter_response(
             token,
             &format!("reject|{code} {class}.{subject}.{detail} {message}"),
         ),
-        FilterResponse::Disconnect { message } => {
-            protocol::format_filter_result(reqid, token, &format!("disconnect|421 {message}"))
+        FilterResponse::Disconnect { code, message } => {
+            protocol::format_filter_result(reqid, token, &format!("disconnect|{code} {message}"))
         }
         FilterResponse::DisconnectEnhanced {
+            code,
             class,
             subject,
             detail,
@@ -555,7 +557,7 @@ fn write_filter_response(
         } => protocol::format_filter_result(
             reqid,
             token,
-            &format!("disconnect|421 {class}.{subject}.{detail} {message}"),
+            &format!("disconnect|{code} {class}.{subject}.{detail} {message}"),
         ),
         FilterResponse::Rewrite(value) => {
             protocol::format_filter_result(reqid, token, &format!("rewrite|{value}"))

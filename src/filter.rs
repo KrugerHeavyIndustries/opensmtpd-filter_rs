@@ -18,6 +18,7 @@ use crate::types::{Address, AuthStatus, Direction, Session, Status};
 
 pub enum FilterResponse {
     Proceed,
+    Junk,
     Reject { code: u16, message: String },
     RejectEnhanced {
         code: u16,
@@ -26,8 +27,9 @@ pub enum FilterResponse {
         detail: u16,
         message: String,
     },
-    Disconnect { message: String },
+    Disconnect { code: u16, message: String },
     DisconnectEnhanced {
+        code: u16,
         class: u8,
         subject: u16,
         detail: u16,
