@@ -236,7 +236,9 @@ impl<F: Filter> SmtpFilterRunner<F> {
     }
 
     pub fn run(&mut self) -> ExitCode {
-        match self.run_inner() {
+        let stdin = io::stdin();
+        let stdout = io::stdout();
+        match self.run_with(stdin.lock(), stdout.lock()) {
             Ok(()) => ExitCode::SUCCESS,
             Err(e) => {
                 eprintln!("FATAL|{e}");
@@ -245,17 +247,13 @@ impl<F: Filter> SmtpFilterRunner<F> {
         }
     }
 
-    fn run_inner(&mut self) -> io::Result<()> {
+    pub fn run_with(&mut self, input: impl BufRead, mut output: impl Write) -> io::Result<()> {
         if self.registrations.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "No events registered",
             ));
         }
-
-        let stdin = io::stdin();
-        let stdout = io::stdout();
-        let mut stdout = stdout.lock();
 
         for reg in &self.registrations {
             let type_str = match reg.kind {
@@ -266,19 +264,19 @@ impl<F: Filter> SmtpFilterRunner<F> {
                 Direction::Incoming => "smtp-in",
                 Direction::Outgoing => "smtp-out",
             };
-            writeln!(stdout, "register|{type_str}|{dir_str}|{}", reg.phase.as_str())?;
+            writeln!(output, "register|{type_str}|{dir_str}|{}", reg.phase.as_str())?;
         }
-        writeln!(stdout, "register|ready")?;
-        stdout.flush()?;
+        writeln!(output, "register|ready")?;
+        output.flush()?;
 
-        for line in stdin.lock().lines() {
+        for line in input.lines() {
             let line = line?;
             if line.is_empty() {
                 continue;
             }
 
-            self.handle_line(&line, &mut stdout)?;
-            stdout.flush()?;
+            self.handle_line(&line, &mut output)?;
+            output.flush()?;
         }
 
         Ok(())
