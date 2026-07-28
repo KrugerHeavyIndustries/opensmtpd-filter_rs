@@ -158,7 +158,7 @@ impl Phase {
             "rcpt-to" => Some(Phase::RcptTo),
             "data" => Some(Phase::Data),
             "data-line" => Some(Phase::DataLine),
-            "reset" => Some(Phase::Reset),
+            "rset" => Some(Phase::Reset),
             "quit" => Some(Phase::Quit),
             "noop" => Some(Phase::Noop),
             "help" => Some(Phase::Help),
