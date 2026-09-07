@@ -63,11 +63,12 @@ impl Filter for AnnounceFilter {
         &mut self,
         session: &Session,
         _direction: Direction,
+        method: &str,
         identity: &str,
     ) {
         eprintln!(
-            "{:x}: link-identify: {}",
-            session.reqid, identity
+            "{:x}: link-identify: {} {}",
+            session.reqid, method, identity
         )
     }
 

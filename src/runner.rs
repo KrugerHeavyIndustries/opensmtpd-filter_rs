@@ -397,10 +397,12 @@ impl<F: Filter> SmtpFilterRunner<F> {
                     .on_report_link_greeting(session, event.direction, params);
             }
             (FilterKind::Report, Phase::LinkIdentify) => {
+                let (method, identity) = parse_report_link_identify(params)?;
                 let session = self.sessions.get_mut(&event.reqid).unwrap();
-                session.identity = Some(params.to_string());
+                session.method = Some(method.clone());
+                session.identity = Some(identity.clone());
                 self.filter
-                    .on_report_link_identify(session, event.direction, params);
+                    .on_report_link_identify(session, event.direction, &method, &identity);
             }
             (FilterKind::Report, Phase::LinkTls) => {
                 let session = self.sessions.get_mut(&event.reqid).unwrap();
@@ -617,6 +619,13 @@ fn parse_report_link_connect(
     let dst = protocol::parse_address(dst_str, true)?;
 
     Ok((rdns.to_string(), fcrdns, src, dst))
+}
+
+fn parse_report_link_identify(params: &str) -> Result<(String, String), ParseError> {
+    let (method, identity) = params
+        .split_once('|')
+        .ok_or_else(|| ParseError("missing identity in link-identify".into()))?;
+    Ok((method.to_string(), identity.to_string()))
 }
 
 fn parse_report_link_auth(params: &str) -> Result<(String, AuthStatus), ParseError> {

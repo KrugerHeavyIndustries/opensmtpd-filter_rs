@@ -133,6 +133,7 @@ pub trait Filter {
         &mut self,
         session: &Session,
         direction: Direction,
+        method: &str,
         identity: &str,
     ) {
     }
